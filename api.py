@@ -1,6 +1,7 @@
 import hmac
 import json
 import hashlib
+from datetime import date
 from functools import wraps
 from urllib.parse import parse_qsl
 
@@ -8,6 +9,7 @@ from flask import Flask, request, jsonify, g
 
 import db
 from config import BOT_TOKEN, BOT_USERNAME, DEV_MODE, PORT
+from parse import human_due
 
 app = Flask(__name__, static_folder="webapp", static_url_path="")
 db.init_db()
@@ -55,19 +57,48 @@ def need_user(fn):
     return wrapper
 
 
+def task_json(t, uid):
+    late = t["status"] != "done" and t["due"] and t["due"] < date.today().isoformat()
+    return {
+        "id": t["id"],
+        "text": t["text"],
+        "status": t["status"],
+        "due": t["due"],
+        "due_h": human_due(t["due"]),
+        "late": bool(late),
+        "mine": t["assignee_id"] == uid,
+        "assignee": {
+            "id": t["assignee_id"],
+            "name": t["assignee_name"],
+            "photo": t["assignee_photo"],
+        },
+        "author": t["author_name"],
+    }
+
+
+def stats_of(tasks):
+    return {
+        "new": sum(1 for t in tasks if t["status"] == "new"),
+        "doing": sum(1 for t in tasks if t["status"] == "doing"),
+        "done": sum(1 for t in tasks if t["status"] == "done"),
+        "late": sum(1 for t in tasks if t["late"]),
+    }
+
+
 def me_payload():
     m = db.membership(g.uid)
     data = dict(g.user)
     data["member"] = bool(m)
     if m:
+        mine = [task_json(t, g.uid) for t in db.tasks_for(m["company_id"], g.uid)]
         data.update({
             "company": m["company_name"],
             "company_id": m["company_id"],
             "role": m["role"],
             "role_name": db.ROLES.get(m["role"], "Xodim"),
             "department": m["department"],
-            "stats": {"new": 0, "doing": 0, "done": 0, "late": 0},
-            "tasks": [],
+            "stats": stats_of(mine),
+            "tasks": mine,
         })
     return data
 
@@ -102,6 +133,41 @@ def join():
     if not db.use_invite(code, g.uid):
         return jsonify({"error": "code"}), 400
     return jsonify(me_payload())
+
+
+@app.get("/api/tasks")
+@need_user
+def tasks():
+    m = db.membership(g.uid)
+    if not m:
+        return jsonify({"error": "member"}), 403
+
+    scope = request.args.get("scope", "mine")
+    boss = m["role"] in ("owner", "head")
+    assignee = None if (scope == "all" and boss) else g.uid
+
+    rows = [task_json(t, g.uid) for t in db.tasks_for(m["company_id"], assignee)]
+    return jsonify({"tasks": rows, "stats": stats_of(rows), "boss": boss})
+
+
+@app.post("/api/task/<int:task_id>/status")
+@need_user
+def task_status(task_id):
+    m = db.membership(g.uid)
+    t = db.task(task_id)
+    if not m or not t or t["company_id"] != m["company_id"]:
+        return jsonify({"error": "topilmadi"}), 404
+
+    # O'z vazifasini xodim o'zi yuritadi; rahbar hammasini yurita oladi.
+    if t["assignee_id"] != g.uid and m["role"] not in ("owner", "head"):
+        return jsonify({"error": "ruxsat"}), 403
+
+    status = (request.json or {}).get("status")
+    if status not in ("new", "doing", "done"):
+        return jsonify({"error": "status"}), 400
+
+    db.set_status(task_id, status)
+    return jsonify({"ok": True})
 
 
 @app.get("/api/team")

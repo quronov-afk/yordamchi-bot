@@ -117,8 +117,16 @@
   <!-- Vazifalar -->
   <div class="tab-body hidden" id="tab-tasks">
     <div class="section-title">Vazifalar</div>
-    <div class="empty">Vazifalar taxtasi keyingi bosqichda quriladi.<br>
-      Avval botni ish guruhingizga qo'shamiz.</div>
+    <div class="chips" id="task-filters">
+      <button class="chip on" data-filter="active">Faol</button>
+      <button class="chip" data-filter="done">Bajarilgan</button>
+      <button class="chip" data-filter="all">Hammasi</button>
+    </div>
+    <div class="chips hidden" id="scope-filters">
+      <button class="chip on" data-scope="mine">Mening ishlarim</button>
+      <button class="chip" data-scope="all">Jamoa ishlari</button>
+    </div>
+    <div id="tasks-full"></div>
   </div>
 
   <!-- Jamoa -->

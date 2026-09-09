@@ -88,11 +88,78 @@ function fillMain(me) {
   document.getElementById("pr-avatar").outerHTML = avatarHtml(me, "avatar").replace(
     "class=\"avatar\"", "class=\"avatar\" id=\"pr-avatar\"");
 
-  document.getElementById("task-list").innerHTML =
-    `<div class="empty">Hozircha vazifa yo'q.<br>Guruhda topshiriq berilganda shu yerda paydo bo'ladi.</div>`;
+  const active = me.tasks.filter((t) => t.status !== "done").slice(0, 6);
+  document.getElementById("task-list").innerHTML = active.length
+    ? active.map(taskHtml).join("")
+    : `<div class="empty">Hozircha vazifa yo'q.<br>Guruhda topshiriq berilganda shu yerda paydo bo'ladi.</div>`;
 
   show("screen-main");
   drawIcons();
+}
+
+/* ---------- Vazifalar ---------- */
+
+const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+
+function taskHtml(t) {
+  const cls = t.late ? "late" : t.status;
+  const meta = [];
+  if (!t.mine && t.assignee.name) meta.push(t.assignee.name);
+  if (t.due_h) meta.push(t.late ? `<span class="late-word">${t.due_h} — kechikdi</span>` : t.due_h);
+  if (t.author && t.mine) meta.push(t.author);
+
+  return `
+    <div class="task ${cls}" data-id="${t.id}">
+      <button class="task-check" data-action="cycle" data-id="${t.id}" data-status="${t.status}">${CHECK}</button>
+      <div class="task-body">
+        <div class="task-text">${escapeHtml(t.text)}</div>
+        ${meta.length ? `<div class="task-meta">${meta.join(" · ")}</div>` : ""}
+      </div>
+      ${t.status === "doing" ? '<span class="tag doing">Jarayonda</span>' : ""}
+    </div>`;
+}
+
+function escapeHtml(s) {
+  return (s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+let taskFilter = "active";
+let taskScope = "mine";
+
+async function loadTasks() {
+  const box = document.getElementById("tasks-full");
+  box.innerHTML = `<div class="empty">Yuklanmoqda…</div>`;
+
+  let data;
+  try {
+    data = await call(`/api/tasks?scope=${taskScope}`);
+  } catch (e) {
+    box.innerHTML = `<div class="empty">Ma'lumot yuklanmadi.</div>`;
+    return;
+  }
+
+  document.getElementById("scope-filters").classList.toggle("hidden", !data.boss);
+
+  const list = data.tasks.filter((t) =>
+    taskFilter === "all" ? true : taskFilter === "done" ? t.status === "done" : t.status !== "done");
+
+  box.innerHTML = list.length
+    ? list.map(taskHtml).join("")
+    : `<div class="empty">Bu bo'limda vazifa yo'q.</div>`;
+}
+
+async function cycleStatus(id, current) {
+  const next = { new: "doing", doing: "done", done: "new" }[current] || "doing";
+  try {
+    await call(`/api/task/${id}/status`, { method: "POST", body: JSON.stringify({ status: next }) });
+    tg?.HapticFeedback?.impactOccurred?.("light");
+  } catch (e) {
+    return toast("O'zgartirilmadi");
+  }
+  toast({ doing: "Boshlandi", done: "Bajarildi ✅", new: "Qaytarildi" }[next]);
+  ME = await call("/api/me");
+  fillMain(ME);
+  if (!document.getElementById("tab-tasks").classList.contains("hidden")) loadTasks();
 }
 
 /* ---------- Jamoa ---------- */
@@ -199,6 +266,8 @@ document.addEventListener("click", async (ev) => {
 
   if (action === "make-invite") makeInvite();
 
+  if (action === "cycle") cycleStatus(el.dataset.id, el.dataset.status);
+
   if (action === "share-invite") {
     const link = el.dataset.link;
     const text = `${ME.company} jamoasiga qo'shiling:`;
@@ -221,7 +290,29 @@ function setupTabs() {
       document.getElementById("tab-" + btn.dataset.tab).classList.remove("hidden");
       window.scrollTo(0, 0);
       if (btn.dataset.tab === "team") loadTeam();
+      if (btn.dataset.tab === "tasks") loadTasks();
     });
+  });
+
+  const pick = (wrap, chip) => {
+    wrap.querySelectorAll(".chip").forEach((c) => c.classList.remove("on"));
+    chip.classList.add("on");
+  };
+
+  document.getElementById("task-filters").addEventListener("click", (ev) => {
+    const chip = ev.target.closest(".chip");
+    if (!chip) return;
+    pick(ev.currentTarget, chip);
+    taskFilter = chip.dataset.filter;
+    loadTasks();
+  });
+
+  document.getElementById("scope-filters").addEventListener("click", (ev) => {
+    const chip = ev.target.closest(".chip");
+    if (!chip) return;
+    pick(ev.currentTarget, chip);
+    taskScope = chip.dataset.scope;
+    loadTasks();
   });
 }
 

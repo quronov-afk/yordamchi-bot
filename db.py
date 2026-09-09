@@ -61,6 +61,28 @@ def init_db():
             used_by    INTEGER,
             used_at    TEXT
         );
+        CREATE TABLE IF NOT EXISTS groups(
+            chat_id    INTEGER PRIMARY KEY,
+            company_id INTEGER,
+            title      TEXT,
+            linked_by  INTEGER,
+            created_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS tasks(
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id  INTEGER,
+            chat_id     INTEGER,
+            message_id  INTEGER,
+            text        TEXT,
+            assignee_id INTEGER,
+            author_id   INTEGER,
+            status      TEXT DEFAULT 'new',
+            due         TEXT,
+            created_at  TEXT,
+            done_at     TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_tasks_company ON tasks(company_id, status);
+        CREATE INDEX IF NOT EXISTS idx_tasks_assignee ON tasks(assignee_id, status);
         """)
         conn.commit()
 
@@ -149,6 +171,82 @@ def team(company_id):
             WHERE m.company_id = ?
             ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'head' THEN 1 ELSE 2 END, u.name
         """, (company_id,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def user_by_username(username):
+    uname = (username or "").strip().lstrip("@").lower()
+    if not uname:
+        return None
+    with db_lock:
+        row = cursor.execute("SELECT * FROM users WHERE LOWER(username) = ?", (uname,)).fetchone()
+    return dict(row) if row else None
+
+
+# ----------------------------------------------------------
+# Guruhlar
+# ----------------------------------------------------------
+def link_group(chat_id, company_id, title, linked_by):
+    with db_lock:
+        cursor.execute("""INSERT INTO groups(chat_id, company_id, title, linked_by, created_at)
+                          VALUES(?,?,?,?,?)
+                          ON CONFLICT(chat_id) DO UPDATE SET
+                            company_id=excluded.company_id, title=excluded.title""",
+                       (chat_id, company_id, title, linked_by, now_str()))
+        conn.commit()
+
+
+def group_company(chat_id):
+    with db_lock:
+        row = cursor.execute("SELECT company_id FROM groups WHERE chat_id = ?", (chat_id,)).fetchone()
+    return row["company_id"] if row else None
+
+
+# ----------------------------------------------------------
+# Vazifalar
+# ----------------------------------------------------------
+def add_task(company_id, chat_id, message_id, text, assignee_id, author_id, due=None):
+    with db_lock:
+        cursor.execute("""INSERT INTO tasks(company_id, chat_id, message_id, text,
+                                            assignee_id, author_id, status, due, created_at)
+                          VALUES(?,?,?,?,?,?,'new',?,?)""",
+                       (company_id, chat_id, message_id, text, assignee_id, author_id, due, now_str()))
+        task_id = cursor.lastrowid
+        conn.commit()
+    return task_id
+
+
+def task(task_id):
+    with db_lock:
+        row = cursor.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def set_status(task_id, status):
+    done_at = now_str() if status == "done" else None
+    with db_lock:
+        cursor.execute("UPDATE tasks SET status = ?, done_at = ? WHERE id = ?",
+                       (status, done_at, task_id))
+        conn.commit()
+
+
+def tasks_for(company_id, assignee_id=None):
+    """Vazifalar ro'yxati — mas'ul berilsa faqat o'shaniki."""
+    sql = """
+        SELECT t.*, u.name AS assignee_name, u.username AS assignee_username, u.photo AS assignee_photo,
+               a.name AS author_name
+        FROM tasks t
+        LEFT JOIN users u ON u.id = t.assignee_id
+        LEFT JOIN users a ON a.id = t.author_id
+        WHERE t.company_id = ?
+    """
+    args = [company_id]
+    if assignee_id:
+        sql += " AND t.assignee_id = ?"
+        args.append(assignee_id)
+    sql += " ORDER BY CASE t.status WHEN 'new' THEN 0 WHEN 'doing' THEN 1 ELSE 2 END, t.due IS NULL, t.due, t.id DESC"
+    with db_lock:
+        rows = cursor.execute(sql, args).fetchall()
     return [dict(r) for r in rows]
 
 

@@ -133,6 +133,38 @@ button{ font-family:inherit; color:inherit; border:none; background:none; cursor
 }
 .invite-note{ font-size:13px; color:var(--text-dim); margin-bottom:14px; }
 
+/* ---------- Vazifa ---------- */
+.task{
+  display:flex; align-items:flex-start; gap:12px;
+  padding:14px; margin-bottom:8px;
+  background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow);
+  border-left:4px solid var(--line);
+}
+.task.new{ border-left-color:var(--blue); }
+.task.doing{ border-left-color:var(--orange); }
+.task.done{ border-left-color:var(--win); }
+.task.late{ border-left-color:var(--lose); }
+
+.task-check{
+  width:26px; height:26px; flex-shrink:0; margin-top:1px;
+  border-radius:50%; border:2px solid var(--line);
+  display:flex; align-items:center; justify-content:center;
+  color:transparent;
+}
+.task-check svg{ width:15px; height:15px; }
+.task.doing .task-check{ border-color:var(--orange); color:var(--orange); }
+.task.done  .task-check{ border-color:var(--win); background:var(--win); color:#fff; }
+
+.task-body{ flex:1; min-width:0; }
+.task-text{ font-weight:700; font-size:15px; letter-spacing:-.2px; }
+.task.done .task-text{ color:var(--text-mute); text-decoration:line-through; }
+.task-meta{ font-size:12px; color:var(--text-mute); margin-top:3px; font-weight:600; }
+.task-meta .late-word{ color:var(--lose); font-weight:800; }
+
+.tag.late{ background:#FFECEA; color:var(--lose); }
+.tag.doing{ background:#FFF0E6; color:var(--orange); }
+.tag.done{ background:#E9F9EF; color:#12894A; }
+
 /* ---------- Xabar ---------- */
 .toast{
   position:fixed; left:50%; bottom:calc(var(--nav-h) + 24px); transform:translateX(-50%);
