@@ -1,7 +1,9 @@
 import logging
 import threading
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, MenuButtonWebApp
+from telegram import (Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo,
+                      MenuButtonWebApp, BotCommand, BotCommandScopeAllPrivateChats,
+                      BotCommandScopeAllGroupChats)
 from telegram.constants import ChatType
 from telegram.ext import Application, CommandHandler, ContextTypes
 
@@ -199,6 +201,18 @@ async def on_startup(app: Application):
                 menu_button=MenuButtonWebApp(text=APP_NAME, web_app=WebAppInfo(url=APP_URL)))
         except Exception as e:
             logger.warning("Menyu tugmasi sozlanmadi: %s", e)
+
+    try:
+        await app.bot.set_my_commands(
+            [BotCommand("start", "Ilovani ochish")],
+            scope=BotCommandScopeAllPrivateChats())
+        await app.bot.set_my_commands([
+            BotCommand("vazifa", "Topshiriq berish"),
+            BotCommand("ulash", "Guruhni kompaniyaga ulash"),
+            BotCommand("yordam", "Qanday ishlaydi"),
+        ], scope=BotCommandScopeAllGroupChats())
+    except Exception as e:
+        logger.warning("Buyruqlar ro'yxati sozlanmadi: %s", e)
 
 
 def main():
