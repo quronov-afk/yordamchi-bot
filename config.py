@@ -19,4 +19,4 @@ DEV_MODE = os.getenv("DEV_MODE", "0") == "1"
 # O'zbekiston vaqti
 TZ = timezone(timedelta(hours=5))
 
-APP_NAME = "Yordamchi"
+APP_NAME = "Yordamchi AI"
