@@ -66,6 +66,82 @@ button{ font-family:inherit; color:inherit; border:none; background:none; cursor
 
 .center-screen .msg{ margin-top:22px; text-align:center; color:rgba(255,255,255,.8); max-width:280px; }
 
+.start-title{ font-size:36px; font-weight:800; margin:22px 0 8px; letter-spacing:-1px; }
+.start-sub{ text-align:center; margin:0 0 34px; color:rgba(255,255,255,.72); }
+.start-lines{ width:100%; max-width:340px; margin-bottom:34px; display:flex; flex-direction:column; gap:14px; }
+.start-line{ display:flex; align-items:center; gap:12px; font-size:14px; color:rgba(255,255,255,.9); }
+.sl-ico{ width:22px; height:22px; flex-shrink:0; color:var(--lime); }
+.sl-ico svg{ width:100%; height:100%; }
+.start-actions{ width:100%; max-width:340px; display:flex; flex-direction:column; gap:10px; }
+
+/* ---------- Tugmalar ---------- */
+.btn{
+  width:100%; padding:16px; border-radius:16px;
+  font-size:16px; font-weight:800; text-align:center; transition:transform .1s ease;
+}
+.btn:active{ transform:scale(.98); }
+.btn:disabled{ opacity:.55; pointer-events:none; }
+.btn-primary{ background:var(--lime); color:var(--navy); box-shadow:var(--shadow-lime); }
+.btn-ghost{ background:rgba(255,255,255,.16); color:#fff; }
+.btn-link{ font-size:14px; font-weight:700; color:rgba(255,255,255,.8); padding:12px; }
+.tab-body .btn-ghost{ background:var(--surface); color:var(--text); box-shadow:var(--shadow); }
+.tab-body .btn-primary{ color:var(--navy); }
+
+/* ---------- Shakl ---------- */
+.form-title{ font-size:28px; font-weight:800; margin:0 0 8px; align-self:flex-start; letter-spacing:-.6px; }
+.form-note{ color:rgba(255,255,255,.72); margin:0 0 24px; align-self:flex-start; }
+.field-label{ align-self:flex-start; font-size:12px; margin-bottom:8px; font-weight:700; color:rgba(255,255,255,.6); }
+.field{
+  width:100%; padding:16px; margin-bottom:20px;
+  background:rgba(255,255,255,.14); border:1.5px solid rgba(255,255,255,.24);
+  border-radius:16px; color:#fff; font-size:16px;
+}
+.field::placeholder{ color:rgba(255,255,255,.45); }
+.field:focus{ outline:none; border-color:var(--lime); }
+.code-field{ text-align:center; font-size:28px; font-weight:800; letter-spacing:10px; }
+.form-actions{ width:100%; max-width:340px; display:flex; flex-direction:column; gap:10px; margin-top:8px; }
+.center-screen .form-title,
+.center-screen .form-note,
+.center-screen .field,
+.center-screen .field-label,
+.center-screen .chips{ width:100%; max-width:340px; }
+
+/* ---------- Chiplar ---------- */
+.chips{ display:flex; gap:8px; margin-bottom:22px; flex-wrap:wrap; }
+.chip{
+  padding:11px 17px; border-radius:999px;
+  font-size:14px; font-weight:700; white-space:nowrap;
+  background:rgba(255,255,255,.16); color:rgba(255,255,255,.85);
+}
+.chip.on{ background:var(--lime); color:var(--navy); }
+.tab-body .chip{ background:var(--surface); color:var(--text-dim); box-shadow:var(--shadow); }
+.tab-body .chip.on{ background:var(--blue); color:#fff; }
+
+/* ---------- Nishon (rol) ---------- */
+.tag{
+  font-size:11px; font-weight:800; padding:5px 10px; border-radius:999px;
+  background:var(--surface-2); color:var(--text-dim); white-space:nowrap;
+}
+.tag.owner{ background:#EEF1FE; color:var(--blue); }
+.tag.head{ background:#F2FBD2; color:#6E9200; }
+
+/* ---------- Taklif kodi ---------- */
+.invite-card{
+  background:var(--surface); border-radius:var(--radius-xl);
+  padding:18px; margin-bottom:10px; box-shadow:var(--shadow); text-align:center;
+}
+.invite-code{
+  font-size:30px; font-weight:800; letter-spacing:6px; color:var(--blue); margin:6px 0 4px;
+}
+.invite-note{ font-size:13px; color:var(--text-dim); margin-bottom:14px; }
+
+/* ---------- Xabar ---------- */
+.toast{
+  position:fixed; left:50%; bottom:calc(var(--nav-h) + 24px); transform:translateX(-50%);
+  background:var(--navy); color:#fff; padding:13px 20px; border-radius:14px;
+  font-size:14px; font-weight:700; z-index:80; max-width:88%; text-align:center;
+}
+
 /* ---------- Ko'k boshliq ---------- */
 .app-head{
   position:relative; z-index:20;

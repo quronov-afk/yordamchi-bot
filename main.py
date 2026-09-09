@@ -5,13 +5,14 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppI
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 import api
+import db
 from config import BOT_TOKEN, APP_URL, PORT, APP_NAME
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 WELCOME = (
-    "✍️ <b>Yordamchi</b>\n"
+    "✍️ <b>Yordamchi AI</b>\n"
     "<i>Guruhdagi topshiriqlar bir joyda</i>\n\n"
     "Guruhda berilgan topshiriqlar shu yerda yig'iladi: kim nima qilishi kerak, "
     "qachongacha va qaysi biri bajarildi.\n\n"
@@ -32,6 +33,27 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not APP_URL:
         await update.effective_message.reply_text("Ilova manzili hali sozlanmagan (APP_URL).")
         return
+
+    user = update.effective_user
+    name = user.full_name or user.first_name or "Foydalanuvchi"
+    db.upsert_user(user.id, name, user.username)
+
+    # Taklif havolasi bilan kelgan bo'lsa — kompaniyaga qo'shiladi
+    code = context.args[0] if context.args else None
+    if code and not db.membership(user.id):
+        if db.use_invite(code, user.id):
+            m = db.membership(user.id)
+            await update.effective_message.reply_text(
+                f"✅ <b>{m['company_name']}</b> jamoasiga qo'shildingiz!\n"
+                f"Rolingiz: <b>{db.ROLES.get(m['role'], 'Xodim')}</b>",
+                parse_mode="HTML", reply_markup=open_button())
+            return
+        await update.effective_message.reply_text(
+            "❌ <b>Bu taklif havolasi ishlamadi.</b>\n\n"
+            "U allaqachon ishlatilgan bo'lishi mumkin — rahbaringizdan yangi havola so'rang.",
+            parse_mode="HTML")
+        return
+
     await update.effective_message.reply_text(
         WELCOME, parse_mode="HTML", reply_markup=open_button())
 

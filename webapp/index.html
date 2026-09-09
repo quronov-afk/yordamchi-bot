@@ -16,14 +16,58 @@
   <p class="msg hidden" id="load-msg"></p>
 </div>
 
+<!-- Birinchi kirish -->
+<div id="screen-start" class="screen center-screen hidden">
+  <div class="logo-mark">✍️</div>
+  <h1 class="start-title">Yordamchi AI</h1>
+  <p class="start-sub">Guruhdagi topshiriqlar<br>bir joyda to'planadi</p>
+
+  <div class="start-lines">
+    <div class="start-line"><span class="sl-ico" data-ico="list"></span>
+      Vazifalar taxtasi: yangi, jarayonda, bajarilgan</div>
+    <div class="start-line"><span class="sl-ico" data-ico="users"></span>
+      Rahbar butun jamoani bir ekranda ko'radi</div>
+    <div class="start-line"><span class="sl-ico" data-ico="clock"></span>
+      Muddati yaqinlashgan ish o'zi eslatiladi</div>
+  </div>
+
+  <div class="start-actions">
+    <button class="btn btn-primary" data-action="go-create">Kompaniya yaratish</button>
+    <button class="btn-link" data-action="go-join">Menda taklif kodi bor</button>
+  </div>
+</div>
+
+<!-- Kompaniya yaratish -->
+<div id="screen-create" class="screen center-screen hidden">
+  <h2 class="form-title">Yangi kompaniya</h2>
+  <p class="form-note">Bu — sizning tashkilotingiz yoki bo'limingiz nomi. Xodimlar shu nom ostida yig'iladi.</p>
+  <label class="field-label">Nomi</label>
+  <input id="inp-company" class="field" type="text" placeholder="Masalan: Mutolaa nashriyoti" maxlength="60">
+  <div class="form-actions">
+    <button class="btn btn-primary" data-action="create-company">Yaratish</button>
+    <button class="btn btn-ghost" data-action="back-start">Orqaga</button>
+  </div>
+</div>
+
+<!-- Taklif kodi bilan qo'shilish -->
+<div id="screen-join" class="screen center-screen hidden">
+  <h2 class="form-title">Jamoaga qo'shilish</h2>
+  <p class="form-note">Rahbaringiz bergan 6 belgili kodni kiriting.</p>
+  <input id="inp-code" class="field code-field" type="text" placeholder="ABC123" maxlength="6" autocapitalize="characters">
+  <div class="form-actions">
+    <button class="btn btn-primary" data-action="join">Qo'shilish</button>
+    <button class="btn btn-ghost" data-action="back-start">Orqaga</button>
+  </div>
+</div>
+
 <!-- Asosiy ilova -->
 <div id="screen-main" class="screen hidden">
   <header class="app-head">
     <div class="head-left">
       <div class="head-logo">✍️</div>
       <div>
-        <div class="app-name">Yordamchi AI</div>
-        <div class="app-sub">Topshiriqlar bir joyda</div>
+        <div class="app-name" id="head-company">Yordamchi AI</div>
+        <div class="app-sub" id="head-sub">Topshiriqlar bir joyda</div>
       </div>
     </div>
     <span class="head-btn" data-ico="bell"></span>
@@ -63,24 +107,24 @@
           <div class="tile-num" id="st-late">0</div>
         </div>
       </div>
-
-      <span class="me-link">Barcha vazifalarim ›</span>
     </div>
 
-    <div class="section-title">Bugungi vazifalar <span class="pill">Barchasi</span></div>
+    <div class="section-title">Bugungi vazifalar</div>
     <div id="task-list"></div>
   </div>
 
   <!-- Vazifalar -->
   <div class="tab-body hidden" id="tab-tasks">
     <div class="section-title">Vazifalar</div>
-    <div class="empty">Bu bo'lim keyingi qadamda quriladi.</div>
+    <div class="empty">Vazifalar taxtasi keyingi bosqichda quriladi.<br>
+      Avval botni ish guruhingizga qo'shamiz.</div>
   </div>
 
   <!-- Jamoa -->
   <div class="tab-body hidden" id="tab-team">
     <div class="section-title">Jamoa</div>
-    <div class="empty">Bu bo'lim keyingi qadamda quriladi.</div>
+    <div id="invite-box"></div>
+    <div id="team-list"></div>
   </div>
 
   <!-- Profil -->
@@ -102,6 +146,8 @@
     <button class="nav-item" data-tab="profile"><span class="nav-ico" data-ico="user"></span>Profil</button>
   </nav>
 </div>
+
+<div id="toast" class="toast hidden"></div>
 
 <script src="app.js"></script>
 </body>

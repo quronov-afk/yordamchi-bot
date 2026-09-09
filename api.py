@@ -1,13 +1,16 @@
 import hmac
 import json
 import hashlib
+from functools import wraps
 from urllib.parse import parse_qsl
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 
-from config import BOT_TOKEN, DEV_MODE, PORT
+import db
+from config import BOT_TOKEN, BOT_USERNAME, DEV_MODE, PORT
 
 app = Flask(__name__, static_folder="webapp", static_url_path="")
+db.init_db()
 
 
 def validate_init_data(init_data: str):
@@ -29,11 +32,44 @@ def validate_init_data(init_data: str):
         return None
 
 
-def current_user():
-    user = validate_init_data(request.headers.get("X-Init-Data", ""))
-    if user is None and DEV_MODE:
-        return {"id": 1, "first_name": "Sinov", "last_name": "Foydalanuvchi"}
-    return user
+def need_user(fn):
+    """Har so'rovda foydalanuvchini tanib oladi va bazada yangilab qo'yadi."""
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        user = validate_init_data(request.headers.get("X-Init-Data", ""))
+        if user is None and DEV_MODE:
+            user = {"id": 1, "first_name": "Sinov", "last_name": "Foydalanuvchi"}
+        if not user or not user.get("id"):
+            return jsonify({"error": "auth"}), 401
+
+        name = " ".join(x for x in [user.get("first_name"), user.get("last_name")] if x)
+        g.uid = user["id"]
+        g.user = {
+            "id": user["id"],
+            "name": name or "Foydalanuvchi",
+            "username": user.get("username"),
+            "photo": user.get("photo_url"),
+        }
+        db.upsert_user(g.uid, g.user["name"], g.user["username"], g.user["photo"])
+        return fn(*args, **kwargs)
+    return wrapper
+
+
+def me_payload():
+    m = db.membership(g.uid)
+    data = dict(g.user)
+    data["member"] = bool(m)
+    if m:
+        data.update({
+            "company": m["company_name"],
+            "company_id": m["company_id"],
+            "role": m["role"],
+            "role_name": db.ROLES.get(m["role"], "Xodim"),
+            "department": m["department"],
+            "stats": {"new": 0, "doing": 0, "done": 0, "late": 0},
+            "tasks": [],
+        })
+    return data
 
 
 @app.get("/")
@@ -42,20 +78,65 @@ def index():
 
 
 @app.get("/api/me")
+@need_user
 def me():
-    user = current_user()
-    if not user:
-        return jsonify({"error": "auth"}), 401
+    return jsonify(me_payload())
 
-    name = " ".join(x for x in [user.get("first_name"), user.get("last_name")] if x)
+
+@app.post("/api/company")
+@need_user
+def new_company():
+    if db.membership(g.uid):
+        return jsonify({"error": "already"}), 400
+    name = (request.json or {}).get("name", "").strip()
+    if not 2 <= len(name) <= 60:
+        return jsonify({"error": "name"}), 400
+    db.create_company(name, g.uid)
+    return jsonify(me_payload())
+
+
+@app.post("/api/join")
+@need_user
+def join():
+    code = (request.json or {}).get("code", "").strip().upper()
+    if not db.use_invite(code, g.uid):
+        return jsonify({"error": "code"}), 400
+    return jsonify(me_payload())
+
+
+@app.get("/api/team")
+@need_user
+def team():
+    m = db.membership(g.uid)
+    if not m:
+        return jsonify({"error": "member"}), 403
     return jsonify({
-        "id": user.get("id"),
-        "name": name or "Foydalanuvchi",
-        "username": user.get("username"),
-        "photo": user.get("photo_url"),
-        "role": "Xodim",
-        "stats": {"new": 0, "doing": 0, "done": 0, "late": 0},
-        "tasks": [],
+        "team": db.team(m["company_id"]),
+        "invites": db.open_invites(m["company_id"]) if m["role"] in ("owner", "head") else [],
+        "can_invite": m["role"] in ("owner", "head"),
+        "bot": BOT_USERNAME,
+    })
+
+
+@app.post("/api/invite")
+@need_user
+def invite():
+    m = db.membership(g.uid)
+    if not m or m["role"] not in ("owner", "head"):
+        return jsonify({"error": "role"}), 403
+
+    body = request.json or {}
+    role = body.get("role", "employee")
+    if role not in db.ROLES or role == "owner":
+        return jsonify({"error": "role"}), 400
+    department = (body.get("department") or "").strip() or None
+
+    code = db.create_invite(m["company_id"], role, department, g.uid)
+    return jsonify({
+        "code": code,
+        "link": f"https://t.me/{BOT_USERNAME}?start={code}",
+        "role": role,
+        "department": department,
     })
 
 
