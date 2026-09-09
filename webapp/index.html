@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Yordamchi</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+
+<!-- Yuklanish -->
+<div id="screen-loading" class="screen center-screen">
+  <div class="logo-mark">✍️</div>
+  <div class="loading-dots"><span></span><span></span><span></span></div>
+  <p class="msg hidden" id="load-msg"></p>
+</div>
+
+<!-- Asosiy ilova -->
+<div id="screen-main" class="screen hidden">
+  <header class="app-head">
+    <div class="head-left">
+      <div class="head-logo">✍️</div>
+      <div>
+        <div class="app-name">Yordamchi</div>
+        <div class="app-sub">Topshiriqlar bir joyda</div>
+      </div>
+    </div>
+    <span class="head-btn" data-ico="bell"></span>
+  </header>
+
+  <!-- Uy -->
+  <div class="tab-body" id="tab-home">
+    <div class="me-card">
+      <div class="me-top">
+        <div class="me-ring"><div class="avatar" id="me-avatar"></div></div>
+        <div class="me-who">
+          <div class="me-name" id="me-name">—</div>
+          <div class="me-rank" id="me-role">—</div>
+        </div>
+        <div class="rating-pill"><span class="cap">BUGUN</span><span id="me-today">0</span></div>
+      </div>
+
+      <div class="tiles">
+        <div class="tile t-blue">
+          <div class="tile-ico" data-ico="inbox"></div>
+          <div class="tile-cap">Yangi</div>
+          <div class="tile-num" id="st-new">0</div>
+        </div>
+        <div class="tile t-orange">
+          <div class="tile-ico" data-ico="clock"></div>
+          <div class="tile-cap">Jarayonda</div>
+          <div class="tile-num" id="st-doing">0</div>
+        </div>
+        <div class="tile t-lime">
+          <div class="tile-ico" data-ico="check"></div>
+          <div class="tile-cap">Bajarildi</div>
+          <div class="tile-num" id="st-done">0</div>
+        </div>
+        <div class="tile t-red">
+          <div class="tile-ico" data-ico="alert"></div>
+          <div class="tile-cap">Kechikdi</div>
+          <div class="tile-num" id="st-late">0</div>
+        </div>
+      </div>
+
+      <span class="me-link">Barcha vazifalarim ›</span>
+    </div>
+
+    <div class="section-title">Bugungi vazifalar <span class="pill">Barchasi</span></div>
+    <div id="task-list"></div>
+  </div>
+
+  <!-- Vazifalar -->
+  <div class="tab-body hidden" id="tab-tasks">
+    <div class="section-title">Vazifalar</div>
+    <div class="empty">Bu bo'lim keyingi qadamda quriladi.</div>
+  </div>
+
+  <!-- Jamoa -->
+  <div class="tab-body hidden" id="tab-team">
+    <div class="section-title">Jamoa</div>
+    <div class="empty">Bu bo'lim keyingi qadamda quriladi.</div>
+  </div>
+
+  <!-- Profil -->
+  <div class="tab-body hidden" id="tab-profile">
+    <div class="section-title">Profil</div>
+    <div class="row">
+      <div class="avatar" id="pr-avatar"></div>
+      <div class="who">
+        <div class="who-name" id="pr-name">—</div>
+        <div class="who-sub" id="pr-sub">—</div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-tab="home"><span class="nav-ico" data-ico="home"></span>Uy</button>
+    <button class="nav-item" data-tab="tasks"><span class="nav-ico" data-ico="list"></span>Vazifalar</button>
+    <button class="nav-item" data-tab="team"><span class="nav-ico" data-ico="users"></span>Jamoa</button>
+    <button class="nav-item" data-tab="profile"><span class="nav-ico" data-ico="user"></span>Profil</button>
+  </nav>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
