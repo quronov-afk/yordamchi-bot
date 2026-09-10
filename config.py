@@ -20,3 +20,6 @@ DEV_MODE = os.getenv("DEV_MODE", "0") == "1"
 TZ = timezone(timedelta(hours=5))
 
 APP_NAME = "Yordamchi AI"
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")

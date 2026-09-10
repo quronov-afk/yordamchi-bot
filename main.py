@@ -5,8 +5,9 @@ from telegram import (Update, InlineKeyboardButton, InlineKeyboardMarkup, WebApp
                       MenuButtonWebApp, BotCommand, BotCommandScopeAllPrivateChats,
                       BotCommandScopeAllGroupChats)
 from telegram.constants import ChatType
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
+import ai
 import api
 import db
 from config import BOT_TOKEN, APP_URL, PORT, APP_NAME
@@ -143,6 +144,16 @@ def find_assignee(update: Update):
     return None, None, None
 
 
+async def save_task(msg, company_id, assignee_id, assignee_name, text, due_phrase, author_id):
+    due, text = parse_due(text) if due_phrase is None else (parse_due(due_phrase)[0], text)
+    db.add_task(company_id, msg.chat_id, msg.message_id, text, assignee_id, author_id, due)
+
+    line = f"✅ <b>Vazifa yozib olindi</b>\n\n📝 {text}\n👤 Mas'ul: {assignee_name}"
+    if due:
+        line += f"\n⏰ Muddat: {human_due(due)}"
+    await msg.reply_text(line, parse_mode="HTML")
+
+
 async def new_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.effective_message
     chat = update.effective_chat
@@ -184,13 +195,93 @@ async def new_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await msg.reply_text(TASK_HELP, parse_mode="HTML")
         return
 
-    due, text = parse_due(text)
-    db.add_task(company_id, chat.id, msg.message_id, text, assignee_id, author.id, due)
+    await save_task(msg, company_id, assignee_id, assignee_name, text, None, author.id)
 
-    line = f"✅ <b>Vazifa yozib olindi</b>\n\n📝 {text}\n👤 Mas'ul: {assignee_name}"
-    if due:
-        line += f"\n⏰ Muddat: {human_due(due)}"
-    await msg.reply_text(line, parse_mode="HTML")
+
+# ----------------------------------------------------------
+# AI: buyruqsiz, oddiy yozishma yoki ovozdan vazifa aniqlash
+# ----------------------------------------------------------
+async def ai_group_context(update: Update):
+    """Guruh, kompaniya va muallifni tekshiradi. Mos bo'lmasa None qaytaradi."""
+    msg = update.effective_message
+    chat = update.effective_chat
+    if chat.type == ChatType.PRIVATE:
+        return None
+
+    company_id = db.group_company(chat.id)
+    if not company_id:
+        return None
+
+    author = update.effective_user
+    if author.is_bot:
+        return None
+    db.upsert_user(author.id, author.full_name or author.first_name, author.username)
+    author_m = db.membership(author.id)
+    if not author_m or author_m["company_id"] != company_id:
+        return None
+
+    return company_id, author
+
+
+async def resolve_ai_assignee(update: Update, company_id, result):
+    """Aniq @belgilash/javob bo'lsa — o'shani ishonchli deb oladi, bo'lmasa AI aytgan ismni jamoadan qidiradi."""
+    assignee_id, assignee_name, _missing = find_assignee(update)
+    if assignee_id:
+        return assignee_id, assignee_name
+
+    person = db.member_by_name(company_id, result.get("assignee"))
+    if person:
+        return person["id"], person["name"]
+    return None, None
+
+
+async def handle_group_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    ctx = await ai_group_context(update)
+    if not ctx:
+        return
+    company_id, author = ctx
+    msg = update.effective_message
+
+    team_names = [p["name"] for p in db.team(company_id) if p["id"] != author.id]
+    if not team_names:
+        return
+
+    result = ai.from_text(msg.text, team_names)
+    if not result:
+        return
+
+    assignee_id, assignee_name = await resolve_ai_assignee(update, company_id, result)
+    if not assignee_id:
+        return
+
+    await save_task(msg, company_id, assignee_id, assignee_name,
+                     result["task"], result.get("due"), author.id)
+
+
+async def handle_group_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    ctx = await ai_group_context(update)
+    if not ctx:
+        return
+    company_id, author = ctx
+    msg = update.effective_message
+
+    team_names = [p["name"] for p in db.team(company_id) if p["id"] != author.id]
+    if not team_names:
+        return
+
+    file = await context.bot.get_file(msg.voice.file_id)
+    audio = bytes(await file.download_as_bytearray())
+
+    result = ai.from_audio(audio, "audio/ogg", team_names)
+    if not result:
+        return
+
+    assignee_id, assignee_name = await resolve_ai_assignee(update, company_id, result)
+    if not assignee_id:
+        return
+
+    await save_task(msg, company_id, assignee_id, assignee_name,
+                     result["task"], result.get("due"), author.id)
 
 
 # ----------------------------------------------------------
@@ -229,6 +320,9 @@ def main():
     app.add_handler(CommandHandler("ulash", link_group))
     app.add_handler(CommandHandler("vazifa", new_task))
     app.add_handler(CommandHandler("yordam", group_help))
+    app.add_handler(MessageHandler(
+        filters.ChatType.GROUPS & filters.TEXT & ~filters.COMMAND, handle_group_text))
+    app.add_handler(MessageHandler(filters.ChatType.GROUPS & filters.VOICE, handle_group_voice))
     logger.info("Bot ishga tushdi")
     app.run_polling()
 

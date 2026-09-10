@@ -174,6 +174,20 @@ def team(company_id):
     return [dict(r) for r in rows]
 
 
+def member_by_name(company_id, name):
+    """AI aytgan ismni jamoadagi haqiqiy odamga bog'laydi."""
+    name = (name or "").strip().lower()
+    if not name:
+        return None
+    for p in team(company_id):
+        if (p["name"] or "").strip().lower() == name:
+            return p
+    for p in team(company_id):
+        if name in (p["name"] or "").lower() or (p["name"] or "").lower() in name:
+            return p
+    return None
+
+
 def user_by_username(username):
     uname = (username or "").strip().lstrip("@").lower()
     if not uname:
